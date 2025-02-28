@@ -1,18 +1,35 @@
+import json
+import os
+import random
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
-from astrbot.api import logger
+
+# 定义一个函数，用于从 JSON 文件中读取列表
+def load_data_from_json(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("data", [])
 
 @register("helloworld", "Your Name", "一个简单的 Hello World 插件", "1.0.0", "repo url")
 class MyPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-    
-    # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
+        
+        # 获取当前文件的绝对路径
+        path = os.path.abspath(os.path.dirname(__file__))
+        json_file_path = os.path.join(path, "resources", "food.json")
+        
+        # 从 JSON 文件中加载数据
+        self.responses = load_data_from_json(json_file_path)
+
     @filter.command("helloworld")
     async def helloworld(self, event: AstrMessageEvent):
-        '''这是一个 hello world 指令''' # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
-        user_name = event.get_sender_name()
-        message_str = event.message_str # 用户发的纯文本消息字符串
-        message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
-        logger.info(message_chain)
-        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
+        '''这是一个 hello world 指令'''
+        user_name = event.get_sender_name()  # 获取用户昵称
+        message_str = event.message_str  # 获取消息的纯文本内容
+        
+        # 从列表中随机选择一条消息
+        response = random.choice(self.responses)
+        
+        # 发送回复消息
+        yield event.plain_result(f"Hello, {user_name}! {response}")
